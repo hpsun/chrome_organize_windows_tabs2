@@ -28,12 +28,18 @@ const MOVE_TABS_FROM_THIS_DOMAIN_ACTION = {
   id: "move_tabs_from_this_domain"
 }
 
+const MOVE_TABS_FROM_DEEP2_DOMAIN_ACTION = {
+  title: "Move tabs from this deep2 domain to this window",
+  id: "move_tabs_from_deep2_domain"
+}
+
 const GROUP_TABS_FROM_THIS_DOMAON_ACTION = {
   title: "Group tabs from this domain",
   id: "group_tabs_from_this_domain"
 }
 
-const ALL_ACTIONS = [DO_NOTHING, MERGE_AND_SORT_ACTION, MERGE_ACTION, SORT_ACTION, CLOSE_TABS_FROM_THIS_DOMAIN_ACTION, MOVE_TABS_FROM_THIS_DOMAIN_ACTION, GROUP_TABS_FROM_THIS_DOMAON_ACTION]
+
+const ALL_ACTIONS = [DO_NOTHING, MERGE_AND_SORT_ACTION, MERGE_ACTION, SORT_ACTION, CLOSE_TABS_FROM_THIS_DOMAIN_ACTION, MOVE_TABS_FROM_THIS_DOMAIN_ACTION, MOVE_TABS_FROM_DEEP2_DOMAIN_ACTION, GROUP_TABS_FROM_THIS_DOMAON_ACTION]
 
 async function getOptions() {
   return await chrome.storage.sync.get({
@@ -55,6 +61,27 @@ async function getTabsFromDomain(url) {
   return tabs
 }
 
+async function getTabsFromDeep2Domain(url) {
+  // 获取选项配置
+  let options = await getOptions();
+  
+  // 提取二级域名
+  let hostnameParts = url.hostname.split(".");
+  let domain = hostnameParts.slice(-2).join(".");
+  
+  // 构建查询条件
+  let queryUrl = "://*." + domain + "/*";
+  
+  // 查询标签页
+  let tabs = await chrome.tabs.query({
+    groupId: chrome.tabGroups.TAB_GROUP_ID_NONE,
+    url: queryUrl,
+    pinned: options.ignorePinnedTabs ? false : undefined
+  });
+  
+  return tabs;
+}
+
 function baseAction(actionId) {
   if (actionId == DO_NOTHING.id) {
     //DO NOTHING
@@ -68,6 +95,8 @@ function baseAction(actionId) {
     closeTabsFromCurrentDomainAction()
   } else if (actionId == MOVE_TABS_FROM_THIS_DOMAIN_ACTION.id) {
     moveTabsFromCurrentDomainAction()
+  } else if (actionId == MOVE_TABS_FROM_DEEP2_DOMAIN_ACTION.id) {
+    moveTabsFromCurrentDeep2DomainAction()
   } else if (actionId == GROUP_TABS_FROM_THIS_DOMAON_ACTION.id) {
     groupTabsFromCurrentDomainAction()
   }
@@ -99,6 +128,18 @@ async function moveTabsFromCurrentDomainAction() {
   let selectedTab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0]
   let url = new URL(selectedTab.url)
   let tabs = await getTabsFromDomain(url)
+  for (let tab of tabs) {
+    await chrome.tabs.move(tab.id, { windowId: selectedTab.windowId, index: -1 })
+    if (tab.pinned == true) {
+      await chrome.tabs.update(tab.id, { pinned: true })
+    }
+  }
+}
+
+async function moveTabsFromCurrentDeep2DomainAction() {
+  let selectedTab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0]
+  let url = new URL(selectedTab.url)
+  let tabs = await getTabsFromDeep2Domain(url)
   for (let tab of tabs) {
     await chrome.tabs.move(tab.id, { windowId: selectedTab.windowId, index: -1 })
     if (tab.pinned == true) {
