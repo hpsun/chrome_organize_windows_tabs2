@@ -29,7 +29,7 @@ const MOVE_TABS_FROM_THIS_DOMAIN_ACTION = {
 }
 
 const MOVE_TABS_FROM_DEEP2_DOMAIN_ACTION = {
-  title: "Move tabs from this deep2 domain to this window",
+  title: "Move tabs from this level 2 domain to this window",
   id: "move_tabs_from_deep2_domain"
 }
 
@@ -39,11 +39,15 @@ const GROUP_TABS_FROM_THIS_DOMAON_ACTION = {
 }
 
 
-const ALL_ACTIONS = [DO_NOTHING, MERGE_AND_SORT_ACTION, MERGE_ACTION, SORT_ACTION, CLOSE_TABS_FROM_THIS_DOMAIN_ACTION, MOVE_TABS_FROM_THIS_DOMAIN_ACTION, MOVE_TABS_FROM_DEEP2_DOMAIN_ACTION, GROUP_TABS_FROM_THIS_DOMAON_ACTION]
+const ALL_ACTIONS = [
+  DO_NOTHING, MERGE_ACTION, SORT_ACTION, CLOSE_TABS_FROM_THIS_DOMAIN_ACTION, 
+  MOVE_TABS_FROM_THIS_DOMAIN_ACTION, MOVE_TABS_FROM_DEEP2_DOMAIN_ACTION, GROUP_TABS_FROM_THIS_DOMAON_ACTION]
+// MERGE_AND_SORT_ACTION,
 
 async function getOptions() {
   return await chrome.storage.sync.get({
-    defaultAction: MERGE_AND_SORT_ACTION.id,
+//    defaultAction: MERGE_AND_SORT_ACTION.id,
+    defaultAction: DO_NOTHING.id,
     ignorePinnedTabs: true,
     ignorePopupWindows: true,
     ignoreAppWindows: true,
@@ -70,7 +74,7 @@ async function getTabsFromDeep2Domain(url) {
   let domain = hostnameParts.slice(-2).join(".");
   
   // 构建查询条件
-  let queryUrl = "://*." + domain + "/*";
+  let queryUrl = url.protocol + "//*." + domain + "/*";
   
   // 查询标签页
   let tabs = await chrome.tabs.query({
